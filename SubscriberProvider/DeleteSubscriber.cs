@@ -19,26 +19,25 @@ namespace SubscriberProvider
         }
 
         [Function("DeleteSubscriber")]
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "delete", Route = "subscribers")] HttpRequest req)
+        public async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "subscribers/{email}")] HttpRequest req,
+            string email)
         {
-            string email = req.Query["email"];
-
-            if (string.IsNullOrEmpty(email))
-            {
-                return new BadRequestObjectResult("Email is required.");
-            }
+            _logger.LogInformation("Deleting subscriber with email {Email}", email);
 
             try
             {
                 var subscriber = await _context.Subscribers.FirstOrDefaultAsync(s => s.Email == email);
                 if (subscriber == null)
                 {
+                    _logger.LogWarning("Subscriber with email {Email} not found", email);
                     return new NotFoundResult();
                 }
 
                 _context.Subscribers.Remove(subscriber);
                 await _context.SaveChangesAsync();
 
+                _logger.LogInformation("Subscriber with email {Email} deleted successfully", email);
                 return new NoContentResult();
             }
             catch (Exception ex)
