@@ -7,18 +7,30 @@ using Microsoft.Extensions.Logging;
 
 namespace SubscriberProvider
 {
-    public class DeleteSubscriber(ILogger<DeleteSubscriber> logger, DataContext context)
+    public class DeleteSubscriber
     {
-        private readonly ILogger<DeleteSubscriber> _logger = logger;
-        private readonly DataContext _context = context;
+        private readonly ILogger<DeleteSubscriber> _logger;
+        private readonly DataContext _context;
 
+        public DeleteSubscriber(ILogger<DeleteSubscriber> logger, DataContext context)
+        {
+            _logger = logger;
+            _context = context;
+        }
 
         [Function("DeleteSubscriber")]
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "delete", Route = "subscribers/{id:int}")] HttpRequest req, int id)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "delete", Route = "subscribers")] HttpRequest req)
         {
+            string email = req.Query["email"];
+
+            if (string.IsNullOrEmpty(email))
+            {
+                return new BadRequestObjectResult("Email is required.");
+            }
+
             try
             {
-                var subscriber = await _context.Subscribers.FirstOrDefaultAsync(s => s.Id == id);
+                var subscriber = await _context.Subscribers.FirstOrDefaultAsync(s => s.Email == email);
                 if (subscriber == null)
                 {
                     return new NotFoundResult();
@@ -31,7 +43,7 @@ namespace SubscriberProvider
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting subscriber with id {Id}", id);
+                _logger.LogError(ex, "Error deleting subscriber with email {Email}", email);
                 return new StatusCodeResult(StatusCodes.Status500InternalServerError);
             }
         }
